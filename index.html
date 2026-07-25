@@ -4,101 +4,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QUẢN LÝ DANH SÁCH CÁN BỘ</title>
-    <!-- Thư viện SheetJS đọc file Excel -->
+    <!-- FontAwesome Font Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS đọc & xuất Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f2f5;
+            background-color: #f4f6f9;
             color: #333;
             padding: 15px;
         }
+        
+        /* App Header */
         .header {
-            background-color: #0066cc;
+            background-color: #1565c0;
             color: white;
-            padding: 15px;
+            padding: 16px;
             text-align: center;
             font-size: 20px;
-            font-weight: bold;
-            border-radius: 8px;
+            font-weight: 700;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Stats Section */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
             margin-bottom: 15px;
         }
-        .card {
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-icon {
+            font-size: 24px;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bg-blue { background-color: #e3f2fd; color: #1976d2; }
+        .bg-green { background-color: #e8f5e9; color: #388e3c; }
+        .bg-orange { background-color: #fff3e0; color: #f57c00; }
+        
+        .stat-info .num { font-size: 18px; font-weight: bold; }
+        .stat-info .label { font-size: 11px; color: #666; }
+
+        /* Control Card */
+        .control-card {
             background: white;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        .file-btn {
-            display: block;
+        .search-box {
+            position: relative;
+        }
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+        }
+        .search-box input {
             width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
-            text-align: center;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            border: none;
+            padding: 10px 10px 10px 36px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
         }
-        input[type="file"] {
-            display: none;
-        }
-        .table-container {
-            overflow-x: auto;
-            background: white;
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
             border-radius: 8px;
+            outline: none;
+            font-size: 14px;
+            background: #fff;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 11px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-blue { background-color: #1976d2; }
+        .btn-green { background-color: #2e7d32; }
+        .btn-import { background-color: #0288d1; width: 100%; }
+
+        /* Table Container */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow-x: auto;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             white-space: nowrap;
         }
-        th, td {
-            border: 1px solid #e2e8f0;
-            padding: 10px 12px;
-            text-align: left;
-            font-size: 14px;
-        }
         th {
-            background-color: #0066cc;
-            color: white;
+            color: #666;
+            font-weight: 600;
+            padding: 10px;
+            text-align: left;
+            border-bottom: 2px solid #edf2f7;
+            font-size: 13px;
+        }
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
             font-weight: bold;
-            text-align: center;
         }
-        tr:nth-child(even) {
-            background-color: #f8fafc;
+        
+        .action-btns {
+            display: flex;
+            gap: 6px;
         }
-        .empty-msg {
-            text-align: center;
-            color: #888;
-            padding: 20px;
+        .action-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
         }
+        .btn-edit { background-color: #1976d2; }
+        .btn-delete { background-color: #d32f2f; }
+        
+        input[type="file"] { display: none; }
     </style>
 </head>
 <body>
 
+    <!-- Header -->
     <div class="header">
-        👥 QUẢN LÝ DANH SÁCH CÁN BỘ
+        <i class="fa-solid fa-users-gear"></i> QUẢN LÝ DANH SÁCH CÁN BỘ
     </div>
 
-    <div class="card">
-        <label for="excelFile" class="file-btn">📥 Nhập file Excel</label>
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon bg-blue"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info">
+                <div class="num" id="totalCount">0</div>
+                <div class="label">Tổng số</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-green"><i class="fa-solid fa-building"></i></div>
+            <div class="stat-info">
+                <div class="num" id="tdpCount">0</div>
+                <div class="label">Tổ dân phố</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon bg-orange"><i class="fa-solid fa-id-card"></i></div>
+            <div class="stat-info">
+                <div class="num" id="roleCount">0</div>
+                <div class="label">Chức vụ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Actions -->
+    <div class="control-card">
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Tìm nhanh (Họ tên, SĐT, TDP, Chức vụ)..." oninput="filterData()">
+        </div>
+
+        <select id="filterTDP" onchange="filterData()">
+            <option value="">-- Tất cả Tổ dân phố --</option>
+        </select>
+
+        <select id="filterChucVu" onchange="filterData()">
+            <option value="">-- Tất cả Chức vụ --</option>
+        </select>
+
+        <select id="sortOrder" onchange="filterData()">
+            <option value="asc">Sắp xếp: TT tăng dần</option>
+            <option value="desc">Sắp xếp: TT giảm dần</option>
+        </select>
+
+        <div class="btn-group">
+            <button class="btn btn-blue" onclick="alert('Tính năng đang phát triển!')"><i class="fa-solid fa-user-plus"></i> Thêm mới</button>
+            <button class="btn btn-green" onclick="exportExcel()"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+        </div>
+
+        <label for="excelFile" class="btn btn-import">
+            <i class="fa-solid fa-file-import"></i> Nhập Excel
+        </label>
         <input type="file" id="excelFile" accept=".xlsx, .xls">
     </div>
 
-    <div class="table-container">
+    <!-- Data Table -->
+    <div class="table-card">
         <table>
             <thead>
                 <tr>
                     <th style="width: 40px;">TT</th>
+                    <th>Ảnh</th>
                     <th>Họ tên</th>
                     <th>Năm sinh</th>
                     <th>Giới tính</th>
@@ -108,130 +267,194 @@
                     <th>Tổ dân phố</th>
                     <th>Quê quán</th>
                     <th>Nơi cư trú</th>
-                    <th>Số Điện thoại</th>
+                    <th>SĐT</th>
                     <th>Ghi chú</th>
+                    <th>Thao tác</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td colspan="12" class="empty-msg">Chưa có dữ liệu. Vui lòng bấm "Nhập file Excel".</td>
+                    <td colspan="14" style="text-align: center; color: #888; padding: 20px;">
+                        Chưa có dữ liệu. Vui lòng bấm "Nhập Excel".
+                    </td>
                 </tr>
             </tbody>
         </table>
     </div>
 
     <script>
+        let globalData = [];
+
         document.getElementById('excelFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
-
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
-                // Bật cellDates: true để tự động parse kiểu Date từ Excel
                 const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
-                let targetSheet = workbook.Sheets['DS'] || workbook.Sheets[workbook.SheetNames[0]];
+                // Ưu tiên sheet DS hoặc sheet đầu tiên có dữ liệu
+                let targetSheet = workbook.Sheets['DS'] || workbook.Sheets['BIỂU MẪU'] || workbook.Sheets[workbook.SheetNames[0]];
 
                 if (!targetSheet) {
-                    alert("Không tìm thấy dữ liệu trong file!");
+                    alert("File Excel trống!");
                     return;
                 }
 
                 const rows = XLSX.utils.sheet_to_json(targetSheet, { header: 1, defval: "" });
-
-                processData(rows);
+                parseExcelRows(rows);
             };
-
             reader.readAsArrayBuffer(file);
         });
 
-        // Hàm chuyển đổi Ngày/Năm sinh chuẩn định dạng dd/mm/yyyy
         function formatDate(val) {
             if (!val) return '';
-            
-            // Trường hợp dữ liệu là đối tượng Date
             if (val instanceof Date) {
                 let d = String(val.getDate()).padStart(2, '0');
                 let m = String(val.getMonth() + 1).padStart(2, '0');
                 let y = val.getFullYear();
                 return `${d}/${m}/${y}`;
             }
-
-            // Trường hợp dữ liệu là chuỗi văn bản (VD: "1971-03-09" hoặc "1971-03-09 00:00:00")
             let str = String(val).replace(" 00:00:00", "").trim();
             if (str.includes('-')) {
                 let parts = str.split('-');
-                if (parts.length === 3) {
-                    // Nếu định dạng YYYY-MM-DD -> Đổi thành DD/MM/YYYY
-                    if (parts[0].length === 4) {
-                        let y = parts[0];
-                        let m = parts[1].padStart(2, '0');
-                        let d = parts[2].padStart(2, '0');
-                        return `${d}/${m}/${y}`;
-                    }
-                }
-            } else if (str.includes('/')) {
-                let parts = str.split('/');
-                if (parts.length === 3) {
-                    let d = parts[0].padStart(2, '0');
-                    let m = parts[1].padStart(2, '0');
-                    let y = parts[2];
-                    return `${d}/${m}/${y}`;
+                if (parts.length === 3 && parts[0].length === 4) {
+                    return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
                 }
             }
-
             return str;
         }
 
-        function processData(rows) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+        function parseExcelRows(rows) {
+            globalData = [];
+            
+            // Tự tìm dòng bắt đầu có Họ tên
+            let startRow = 1;
+            for (let i = 0; i < Math.min(rows.length, 10); i++) {
+                if (rows[i] && String(rows[i][1] || '').trim() === 'Họ tên') {
+                    startRow = i + 1;
+                    break;
+                }
+            }
 
-            let hasData = false;
-
-            for (let i = 1; i < rows.length; i++) {
+            for (let i = startRow; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
 
                 const hoTen = String(row[1] || '').trim();
-                if (!hoTen || hoTen === 'Họ tên') continue;
+                if (!hoTen || hoTen === 'Họ tên' || hoTen.startsWith('(')) continue;
 
-                const stt       = row[0] || '';
-                const namSinh   = formatDate(row[2]); // Định dạng dd/mm/yyyy
-                const gioiTinh  = String(row[3] || '').trim();
-                const danToc    = String(row[4] || '').trim();
-                const tonGiao   = String(row[5] || '').trim();
-                const chucVu    = String(row[6] || '').trim();
-                const tdp       = String(row[7] || '').trim();
-                const queQuan   = String(row[8] || '').trim();
-                const noiCuTru  = String(row[9] || '').trim();
-                const sdt       = String(row[10] || '').trim();
-                const ghiChu    = String(row[11] || '').trim();
+                globalData.push({
+                    tt: row[0] || (globalData.length + 1),
+                    hoTen: hoTen,
+                    namSinh: formatDate(row[2]),
+                    gioiTinh: String(row[3] || '').trim(),
+                    danToc: String(row[4] || '').trim(),
+                    tonGiao: String(row[5] || '').trim(),
+                    chucVu: String(row[6] || '').trim(),
+                    tdp: String(row[7] || '').trim(),
+                    queQuan: String(row[8] || '').trim(),
+                    noiCuTru: String(row[9] || '').trim(),
+                    sdt: String(row[10] || '').trim(),
+                    ghiChu: String(row[11] || '').trim()
+                });
+            }
 
+            updateDropdowns();
+            filterData();
+        }
+
+        function updateDropdowns() {
+            const tdps = [...new Set(globalData.map(item => item.tdp).filter(Boolean))];
+            const chucVus = [...new Set(globalData.map(item => item.chucVu).filter(Boolean))];
+
+            const tdpSelect = document.getElementById('filterTDP');
+            tdpSelect.innerHTML = '<option value="">-- Tất cả Tổ dân phố --</option>';
+            tdps.forEach(t => tdpSelect.innerHTML += `<option value="${t}">${t}</option>`);
+
+            const cvSelect = document.getElementById('filterChucVu');
+            cvSelect.innerHTML = '<option value="">-- Tất cả Chức vụ --</option>';
+            chucVus.forEach(c => cvSelect.innerHTML += `<option value="${c}">${c}</option>`);
+
+            // Cập nhật thống kê
+            document.getElementById('totalCount').innerText = globalData.length;
+            document.getElementById('tdpCount').innerText = tdps.length;
+            document.getElementById('roleCount').innerText = chucVus.length;
+        }
+
+        function filterData() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const selectedTDP = document.getElementById('filterTDP').value;
+            const selectedCV = document.getElementById('filterChucVu').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+
+            let filtered = globalData.filter(item => {
+                const matchSearch = item.hoTen.toLowerCase().includes(search) ||
+                                    item.sdt.toLowerCase().includes(search) ||
+                                    item.tdp.toLowerCase().includes(search) ||
+                                    item.chucVu.toLowerCase().includes(search);
+                const matchTDP = !selectedTDP || item.tdp === selectedTDP;
+                const matchCV = !selectedCV || item.chucVu === selectedCV;
+                return matchSearch && matchTDP && matchCV;
+            });
+
+            if (sortOrder === 'asc') {
+                filtered.sort((a, b) => (parseInt(a.tt) || 0) - (parseInt(b.tt) || 0));
+            } else {
+                filtered.sort((a, b) => (parseInt(b.tt) || 0) - (parseInt(a.tt) || 0));
+            }
+
+            renderTable(filtered);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; color: #888; padding: 20px;">Không tìm thấy dữ liệu!</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="text-align: center;">${stt}</td>
-                    <td><strong>${hoTen}</strong></td>
-                    <td style="text-align: center;">${namSinh}</td>
-                    <td style="text-align: center;">${gioiTinh}</td>
-                    <td style="text-align: center;">${danToc}</td>
-                    <td style="text-align: center;">${tonGiao}</td>
-                    <td>${chucVu}</td>
-                    <td>${tdp}</td>
-                    <td>${queQuan}</td>
-                    <td>${noiCuTru}</td>
-                    <td style="text-align: center;">${sdt}</td>
-                    <td>${ghiChu}</td>
+                    <td style="text-align: center; font-weight: bold;">${item.tt}</td>
+                    <td>
+                        <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    </td>
+                    <td><strong style="color: #1565c0;">${item.hoTen}</strong></td>
+                    <td style="text-align: center;">${item.namSinh}</td>
+                    <td style="text-align: center;">${item.gioiTinh}</td>
+                    <td style="text-align: center;">${item.danToc}</td>
+                    <td style="text-align: center;">${item.tonGiao}</td>
+                    <td>${item.chucVu}</td>
+                    <td>${item.tdp}</td>
+                    <td>${item.queQuan}</td>
+                    <td>${item.noiCuTru}</td>
+                    <td style="text-align: center; font-weight: 500;">${item.sdt}</td>
+                    <td>${item.ghiChu}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn btn-edit"><i class="fa-solid fa-pen"></i></button>
+                            <button class="action-btn btn-delete"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
                 `;
                 tbody.appendChild(tr);
-                hasData = true;
-            }
+            });
+        }
 
-            if (!hasData) {
-                tbody.innerHTML = '<tr><td colspan="12" class="empty-msg">Không tìm thấy dữ liệu hợp lệ!</td></tr>';
+        function exportExcel() {
+            if (globalData.length === 0) {
+                alert("Không có dữ liệu để xuất!");
+                return;
             }
+            const ws = XLSX.utils.json_to_sheet(globalData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DanhSachCanBo");
+            XLSX.writeFile(wb, "Danh_Sach_Can_Bo.xlsx");
         }
     </script>
 </body>
