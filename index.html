@@ -21,7 +21,6 @@
             padding: 15px;
         }
         
-        /* App Header */
         .header {
             background-color: #1565c0;
             color: white;
@@ -38,7 +37,6 @@
             gap: 10px;
         }
 
-        /* Stats Section */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -70,7 +68,6 @@
         .stat-info .num { font-size: 18px; font-weight: bold; }
         .stat-info .label { font-size: 11px; color: #666; }
 
-        /* Control Card */
         .control-card {
             background: white;
             padding: 15px;
@@ -131,7 +128,6 @@
         .btn-green { background-color: #2e7d32; }
         .btn-import { background-color: #0288d1; width: 100%; }
 
-        /* Table Container */
         .table-card {
             background: white;
             border-radius: 12px;
@@ -292,9 +288,9 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                // raw: false để SheetJS trả về dạng chữ hiển thị chuẩn như trong Excel
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true, raw: false });
 
-                // Ưu tiên sheet DS hoặc sheet đầu tiên có dữ liệu
                 let targetSheet = workbook.Sheets['DS'] || workbook.Sheets['BIỂU MẪU'] || workbook.Sheets[workbook.SheetNames[0]];
 
                 if (!targetSheet) {
@@ -308,20 +304,53 @@
             reader.readAsArrayBuffer(file);
         });
 
+        // Hàm xử lý Ngày tháng / Năm sinh chuyên sâu
         function formatDate(val) {
-            if (!val) return '';
+            if (val === null || val === undefined) return '';
+            
+            // Nếu là kiểu Date trong JavaScript
             if (val instanceof Date) {
+                if (isNaN(val.getTime())) return '';
                 let d = String(val.getDate()).padStart(2, '0');
                 let m = String(val.getMonth() + 1).padStart(2, '0');
                 let y = val.getFullYear();
                 return `${d}/${m}/${y}`;
             }
+
             let str = String(val).replace(" 00:00:00", "").trim();
+
+            // Nếu ô trống hoặc vô nghĩa
+            if (!str || str.toLowerCase() === 'nan' || str.toLowerCase() === 'undefined') {
+                return '';
+            }
+
+            // Định dạng YYYY-MM-DD
             if (str.includes('-')) {
                 let parts = str.split('-');
                 if (parts.length === 3 && parts[0].length === 4) {
                     return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
                 }
+            }
+
+            // Định dạng MM/DD/YYYY hoặc YYYY/MM/DD
+            if (str.includes('/')) {
+                let parts = str.split('/');
+                if (parts.length === 3) {
+                    if (parts[2].length === 4) {
+                        return `${parts[1].padStart(2, '0')}/${parts[0].padStart(2, '0')}/${parts[2]}`;
+                    }
+                }
+            }
+
+            return str;
+        }
+
+        // Hàm làm sạch chuỗi (tránh N/A hoặc undefined)
+        function cleanText(val) {
+            if (val === null || val === undefined) return '';
+            let str = String(val).trim();
+            if (str.toLowerCase() === 'nan' || str.toLowerCase() === 'undefined' || str.toLowerCase() === 'null') {
+                return '';
             }
             return str;
         }
@@ -329,10 +358,9 @@
         function parseExcelRows(rows) {
             globalData = [];
             
-            // Tự tìm dòng bắt đầu có Họ tên
             let startRow = 1;
             for (let i = 0; i < Math.min(rows.length, 10); i++) {
-                if (rows[i] && String(rows[i][1] || '').trim() === 'Họ tên') {
+                if (rows[i] && cleanText(rows[i][1]) === 'Họ tên') {
                     startRow = i + 1;
                     break;
                 }
@@ -342,22 +370,22 @@
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
 
-                const hoTen = String(row[1] || '').trim();
+                const hoTen = cleanText(row[1]);
                 if (!hoTen || hoTen === 'Họ tên' || hoTen.startsWith('(')) continue;
 
                 globalData.push({
-                    tt: row[0] || (globalData.length + 1),
+                    tt: cleanText(row[0]) || (globalData.length + 1),
                     hoTen: hoTen,
                     namSinh: formatDate(row[2]),
-                    gioiTinh: String(row[3] || '').trim(),
-                    danToc: String(row[4] || '').trim(),
-                    tonGiao: String(row[5] || '').trim(),
-                    chucVu: String(row[6] || '').trim(),
-                    tdp: String(row[7] || '').trim(),
-                    queQuan: String(row[8] || '').trim(),
-                    noiCuTru: String(row[9] || '').trim(),
-                    sdt: String(row[10] || '').trim(),
-                    ghiChu: String(row[11] || '').trim()
+                    gioiTinh: cleanText(row[3]),
+                    danToc: cleanText(row[4]),
+                    tonGiao: cleanText(row[5]),
+                    chucVu: cleanText(row[6]),
+                    tdp: cleanText(row[7]),
+                    queQuan: cleanText(row[8]),
+                    noiCuTru: cleanText(row[9]),  // Khắc phục hiển thị trống đẹp mắt thay vì N/A
+                    sdt: cleanText(row[10]),
+                    ghiChu: cleanText(row[11])
                 });
             }
 
@@ -377,7 +405,6 @@
             cvSelect.innerHTML = '<option value="">-- Tất cả Chức vụ --</option>';
             chucVus.forEach(c => cvSelect.innerHTML += `<option value="${c}">${c}</option>`);
 
-            // Cập nhật thống kê
             document.getElementById('totalCount').innerText = globalData.length;
             document.getElementById('tdpCount').innerText = tdps.length;
             document.getElementById('roleCount').innerText = chucVus.length;
