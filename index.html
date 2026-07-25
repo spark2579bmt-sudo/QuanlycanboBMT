@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý cán bộ BMT</title>
-    <!-- Thư viện hỗ trợ đọc file Excel -->
+    <!-- Thư viện SheetJS -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body {
@@ -57,7 +57,7 @@
     <table id="dataTable">
         <thead>
             <tr>
-                <th>STT</th>
+                <th style="width: 50px;">STT</th>
                 <th>Họ và Tên</th>
                 <th>Chức vụ</th>
                 <th>Dân tộc</th>
@@ -83,42 +83,101 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
 
-                // Lấy trang (sheet) đầu tiên
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
+                // Tìm sheet chứa dữ liệu (ưu tiên sheet 'BIỂU MẪU' hoặc sheet có dữ liệu)
+                let targetSheet = workbook.Sheets['BIỂU MẪU'];
+                if (!targetSheet) {
+                    for (let sheetName of workbook.SheetNames) {
+                        const sheet = workbook.Sheets[sheetName];
+                        if (sheet['!ref']) {
+                            targetSheet = sheet;
+                            break;
+                        }
+                    }
+                }
 
-                // Chuyển dữ liệu sheet thành mảng JSON
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                if (!targetSheet) {
+                    alert("Không tìm thấy dữ liệu trong file Excel!");
+                    return;
+                }
 
-                displayData(jsonData);
+                // Chuyển sheet thành mảng 2 chiều
+                const rawRows = XLSX.utils.sheet_to_json(targetSheet, { header: 1, defval: "" });
+
+                processExcelData(rawRows);
             };
 
             reader.readAsArrayBuffer(file);
         });
 
-        function displayData(data) {
+        function processExcelData(rows) {
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ''; // Xóa dữ liệu cũ
+            tbody.innerHTML = '';
 
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">File không có dữ liệu!</td></tr>';
-                return;
+            let colIndex = {
+                stt: -1,
+                hoTen: -1,
+                chucVu: -1,
+                danToc: -1,
+                tonGiao: -1,
+                queQuan: -1
+            };
+
+            let startRowIndex = -1;
+
+            // Quét các dòng tiêu đề để xác định vị trí cột
+            for (let r = 0; r < Math.min(rows.length, 15); r++) {
+                const row = rows[r];
+                for (let c = 0; c < row.length; c++) {
+                    const cellVal = String(row[c] || '').trim().toLowerCase();
+
+                    if (cellVal === 'tt' || cellVal === 'stt') colIndex.stt = c;
+                    if (cellVal.includes('họ và tên') || cellVal.includes('họ tên')) colIndex.hoTen = c;
+                    if (cellVal.includes('chức vụ')) colIndex.chucVu = c;
+                    if (cellVal.includes('dân tộc')) colIndex.danToc = c;
+                    if (cellVal.includes('tôn giáo')) colIndex.tonGiao = c;
+                    if (cellVal.includes('quê quán')) colIndex.queQuan = c;
+                }
+
+                // Nếu đã tìm thấy cột Họ Tên, các dòng dữ liệu sẽ bắt đầu sau dòng tiêu đề
+                if (colIndex.hoTen !== -1) {
+                    startRowIndex = r + 1;
+                }
             }
 
-            data.forEach((row, index) => {
+            // Đọc dữ liệu từ các dòng sau tiêu đề
+            let sttCount = 1;
+            let hasData = false;
+
+            for (let r = startRowIndex; r < rows.length; r++) {
+                const row = rows[r];
+                if (!row) continue;
+
+                const hoTen = colIndex.hoTen !== -1 ? String(row[colIndex.hoTen] || '').trim() : '';
+
+                // Bỏ qua dòng trống hoặc các dòng số thứ tự cột dạng (1), (2)...
+                if (!hoTen || hoTen.startsWith('(') || hoTen.toLowerCase().includes('họ và tên')) continue;
+
+                const chucVu = colIndex.chucVu !== -1 ? String(row[colIndex.chucVu] || '').trim() : '';
+                const danToc = colIndex.danToc !== -1 ? String(row[colIndex.danToc] || '').trim() : '';
+                const tonGiao = colIndex.tonGiao !== -1 ? String(row[colIndex.tonGiao] || '').trim() : '';
+                const queQuan = colIndex.queQuan !== -1 ? String(row[colIndex.queQuan] || '').trim() : '';
+
                 const tr = document.createElement('tr');
-                
-                // Đọc đúng tên cột từ file Excel (hoặc để trống nếu file không có cột đó)
                 tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${row['Họ và Tên'] || row['Họ tên'] || row['HO_TEN'] || ''}</td>
-                    <td>${row['Chức vụ'] || row['CHUC_VU'] || ''}</td>
-                    <td>${row['Dân tộc'] || row['DAN_TOC'] || ''}</td>
-                    <td>${row['Tôn giáo'] || row['TON_GIAO'] || ''}</td>
-                    <td>${row['Quê quán'] || row['QUE_QUAN'] || ''}</td>
+                    <td>${sttCount++}</td>
+                    <td>${hoTen}</td>
+                    <td>${chucVu}</td>
+                    <td>${danToc}</td>
+                    <td>${tonGiao}</td>
+                    <td>${queQuan}</td>
                 `;
                 tbody.appendChild(tr);
-            });
+                hasData = true;
+            }
+
+            if (!hasData) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Không đọc được dữ liệu phù hợp từ file!</td></tr>';
+            }
         }
     </script>
 </body>
