@@ -3,69 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý cán bộ BMT</title>
+    <title>QUẢN LÝ DANH SÁCH CÁN BỘ</title>
     <!-- Thư viện SheetJS đọc file Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f6f9;
-        }
-        h2 {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
             color: #333;
+            padding: 15px;
         }
-        .upload-section {
-            background: #fff;
+        .header {
+            background-color: #0066cc;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .card {
+            background: white;
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+        .file-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
         }
         input[type="file"] {
-            padding: 8px;
+            display: none;
         }
         .table-container {
             overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             white-space: nowrap;
         }
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            padding: 10px 12px;
             text-align: left;
             font-size: 14px;
         }
         th {
-            background-color: #007bff;
+            background-color: #0066cc;
             color: white;
+            font-weight: bold;
             text-align: center;
         }
         tr:nth-child(even) {
-            background-color: #f9f9f9;
+            background-color: #f8fafc;
+        }
+        .empty-msg {
+            text-align: center;
+            color: #888;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
 
-    <h2>Quản Lý Cán Bộ BMT</h2>
+    <div class="header">
+        👥 QUẢN LÝ DANH SÁCH CÁN BỘ
+    </div>
 
-    <div class="upload-section">
-        <label for="excelFile"><strong>Chọn file Excel để nhập dữ liệu: </strong></label>
+    <div class="card">
+        <label for="excelFile" class="file-btn">📥 Nhập file Excel</label>
         <input type="file" id="excelFile" accept=".xlsx, .xls">
     </div>
 
     <div class="table-container">
-        <table id="dataTable">
+        <table>
             <thead>
                 <tr>
                     <th style="width: 40px;">TT</th>
-                    <th>Họ và Tên</th>
+                    <th>Họ tên</th>
                     <th>Năm sinh</th>
                     <th>Giới tính</th>
                     <th>Dân tộc</th>
@@ -80,7 +114,7 @@
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td colspan="12" style="text-align: center; color: #888;">Chưa có dữ liệu. Vui lòng nạp file Excel.</td>
+                    <td colspan="12" class="empty-msg">Chưa có dữ liệu. Vui lòng bấm "Nhập file Excel".</td>
                 </tr>
             </tbody>
         </table>
@@ -95,17 +129,16 @@
 
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+                // Bật cellDates: true để tự động parse kiểu Date từ Excel
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
-                // Lấy Sheet 'BIỂU MẪU' hoặc Sheet đầu tiên
-                let targetSheet = workbook.Sheets['BIỂU MẪU'] || workbook.Sheets[workbook.SheetNames[0]];
+                let targetSheet = workbook.Sheets['DS'] || workbook.Sheets[workbook.SheetNames[0]];
 
                 if (!targetSheet) {
                     alert("Không tìm thấy dữ liệu trong file!");
                     return;
                 }
 
-                // Chuyển sheet thành mảng 2 chiều
                 const rows = XLSX.utils.sheet_to_json(targetSheet, { header: 1, defval: "" });
 
                 processData(rows);
@@ -114,48 +147,82 @@
             reader.readAsArrayBuffer(file);
         });
 
+        // Hàm chuyển đổi Ngày/Năm sinh chuẩn định dạng dd/mm/yyyy
+        function formatDate(val) {
+            if (!val) return '';
+            
+            // Trường hợp dữ liệu là đối tượng Date
+            if (val instanceof Date) {
+                let d = String(val.getDate()).padStart(2, '0');
+                let m = String(val.getMonth() + 1).padStart(2, '0');
+                let y = val.getFullYear();
+                return `${d}/${m}/${y}`;
+            }
+
+            // Trường hợp dữ liệu là chuỗi văn bản (VD: "1971-03-09" hoặc "1971-03-09 00:00:00")
+            let str = String(val).replace(" 00:00:00", "").trim();
+            if (str.includes('-')) {
+                let parts = str.split('-');
+                if (parts.length === 3) {
+                    // Nếu định dạng YYYY-MM-DD -> Đổi thành DD/MM/YYYY
+                    if (parts[0].length === 4) {
+                        let y = parts[0];
+                        let m = parts[1].padStart(2, '0');
+                        let d = parts[2].padStart(2, '0');
+                        return `${d}/${m}/${y}`;
+                    }
+                }
+            } else if (str.includes('/')) {
+                let parts = str.split('/');
+                if (parts.length === 3) {
+                    let d = parts[0].padStart(2, '0');
+                    let m = parts[1].padStart(2, '0');
+                    let y = parts[2];
+                    return `${d}/${m}/${y}`;
+                }
+            }
+
+            return str;
+        }
+
         function processData(rows) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
 
             let hasData = false;
 
-            for (let i = 0; i < rows.length; i++) {
+            for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row || row.length === 0) continue;
 
-                // Tên nằm ở Cột B (index 1)
                 const hoTen = String(row[1] || '').trim();
+                if (!hoTen || hoTen === 'Họ tên') continue;
 
-                // Bỏ qua các dòng tiêu đề, dòng trống, hoặc chỉ số cột (1), (2)...
-                if (!hoTen || hoTen === 'Họ và tên' || hoTen.startsWith('(')) continue;
-
-                // Ánh xạ các trường từ file Excel của bạn:
                 const stt       = row[0] || '';
-                const namSinh   = String(row[2] || row[3] || '').trim(); // Lấy từ cột Nam (index 2) hoặc Nữ (index 3)
-                const gioiTinh  = String(row[10] || '').trim();          // Cột K (index 10)
-                const danToc    = String(row[11] || '').trim();          // Cột L (index 11)
-                const tonGiao   = String(row[12] || '').trim();          // Cột M (index 12)
-                const chucVu    = String(row[4] || '').trim();           // Cột E (index 4)
-                const tdp       = String(row[7] || '').trim();           // Cột H (index 7)
-                const queQuan   = String(row[8] || '').trim();           // Cột I (index 8)
-                const noiCuTru  = String(row[9] || '').trim();           // Cột J (index 9)
-                const sdt       = String(row[18] || '').trim();          // Cột S (index 18)
-                const ghiChu    = String(row[19] || row[20] || '').trim();
+                const namSinh   = formatDate(row[2]); // Định dạng dd/mm/yyyy
+                const gioiTinh  = String(row[3] || '').trim();
+                const danToc    = String(row[4] || '').trim();
+                const tonGiao   = String(row[5] || '').trim();
+                const chucVu    = String(row[6] || '').trim();
+                const tdp       = String(row[7] || '').trim();
+                const queQuan   = String(row[8] || '').trim();
+                const noiCuTru  = String(row[9] || '').trim();
+                const sdt       = String(row[10] || '').trim();
+                const ghiChu    = String(row[11] || '').trim();
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="text-align: center;">${stt}</td>
-                    <td>${hoTen}</td>
-                    <td>${namSinh}</td>
-                    <td>${gioiTinh}</td>
-                    <td>${danToc}</td>
-                    <td>${tonGiao}</td>
+                    <td><strong>${hoTen}</strong></td>
+                    <td style="text-align: center;">${namSinh}</td>
+                    <td style="text-align: center;">${gioiTinh}</td>
+                    <td style="text-align: center;">${danToc}</td>
+                    <td style="text-align: center;">${tonGiao}</td>
                     <td>${chucVu}</td>
                     <td>${tdp}</td>
                     <td>${queQuan}</td>
                     <td>${noiCuTru}</td>
-                    <td>${sdt}</td>
+                    <td style="text-align: center;">${sdt}</td>
                     <td>${ghiChu}</td>
                 `;
                 tbody.appendChild(tr);
@@ -163,7 +230,7 @@
             }
 
             if (!hasData) {
-                tbody.innerHTML = '<tr><td colspan="12" style="text-align: center;">Không đọc được dữ liệu phù hợp!</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" class="empty-msg">Không tìm thấy dữ liệu hợp lệ!</td></tr>';
             }
         }
     </script>
